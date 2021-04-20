@@ -1,0 +1,64 @@
+
+const preprocessor = require('../utils/processor');
+/* url_port_details.js file for port & other server endpoint details */
+let url_port_details = require('../url_port_details');
+const { fork } = require('child_process');
+const forkJsUrl = url_port_details.forkPath + 'forkimganno.js';
+/* npm glob,path methods for services */
+let fs = require('fs');
+
+exports.GetImganno = (req, res) => {
+
+
+    const Token = { 'tk': req.query }
+
+    const input = preprocessor.preProcessSentToToken(Token);
+
+    /* fork another process */
+    const process = fork(forkJsUrl);
+    /* send list of inputs to forked process */
+    process.send(input);
+    // listen for messages from forked process
+    process.on('message', (message) => {
+        if (message) {
+            if (message.counter.status == 200) {
+                res.status(200).send(message.counter.msg);
+            } else {
+                res.status(400).send(message.counter.msg);
+            }
+        } else {
+            res.status(400).send('Unable to process the request');
+        }
+    })
+}
+
+exports.PostImganno = (req, res) => {
+
+    const Token = { 'tk': req.body }
+
+    const input = preprocessor.preProcessSentToToken(Token);
+
+    const dataFolderPath = preprocessor.preProcessGetDataFolder(input);
+
+    if (fs.existsSync(dataFolderPath.dataFolder_book)) {
+        /* fork another process */
+        const process = fork(forkJsUrl);
+        /* send list of inputs to forked process */
+        process.send(input);
+        // listen for messages from forked process
+        process.on('message', (message) => {
+            if (message) {
+                if (message.counter.status == 200) {
+                    res.status(200).send(message.counter.msg);
+                } else {
+                    res.status(400).send(message.counter.msg);
+                }
+            } else {
+                res.status(400).send('Unable to process the request');
+            }
+        })
+    } else {
+        res.status(400).send('File path is not exits');
+    }
+
+}
